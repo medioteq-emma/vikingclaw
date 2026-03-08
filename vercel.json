@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "root": "landing",
+  "outputDirectory": "landing",
+  "builds": [
+    {
+      "src": "landing/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/install.sh",
+      "dest": "/landing/install.sh",
+      "headers": { "Content-Type": "text/plain; charset=utf-8" }
+    },
+    {
+      "src": "/install.ps1",
+      "dest": "/landing/install.ps1",
+      "headers": { "Content-Type": "text/plain; charset=utf-8" }
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/landing/$1"
+    }
+  ]
+}
