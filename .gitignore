@@ -1,0 +1,38 @@
+﻿# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+vikingclaw
+vikingclaw.exe
+
+# Node
+node_modules/
+hq/node_modules/
+hq/dist/
+ui/dist/
+*.log
+npm-debug.log*
+
+# Build artifacts
+dist/
+*.test
+*.out
+coverage.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+*.env
+.env*
+config.yaml
+workspace/

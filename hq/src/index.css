@@ -1,0 +1,225 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* VikingClaw HQ Dark Theme */
+    --background: 210 29% 3%;
+    --background-base: 210 29% 3%;
+    --foreground: 210 17% 90%;
+    
+    --card: 212 24% 7%;
+    --card-foreground: 210 17% 90%;
+    --card-elevated: 212 20% 11%;
+    
+    --popover: 212 24% 7%;
+    --popover-foreground: 210 17% 90%;
+    
+    --primary: 189 100% 50%;
+    --primary-foreground: 210 29% 3%;
+    
+    --secondary: 128 52% 70%;
+    --secondary-foreground: 210 29% 3%;
+    
+    --muted: 212 20% 11%;
+    --muted-foreground: 212 13% 58%;
+    
+    --accent: 189 100% 50%;
+    --accent-foreground: 210 29% 3%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 17% 90%;
+    
+    --warning: 37 87% 58%;
+    --warning-foreground: 210 29% 3%;
+    
+    --success: 128 52% 70%;
+    --success-foreground: 210 29% 3%;
+    
+    --border: 212 14% 17%;
+    --input: 212 14% 17%;
+    --ring: 189 100% 50%;
+    
+    --radius: 0.375rem;
+    
+    /* Custom VikingClaw tokens */
+    --frost: 189 100% 50%;
+    --frost-glow: 0 0 20px hsl(189 100% 50% / 0.15);
+    --terminal-green: 128 52% 70%;
+    --amber-warn: 37 87% 58%;
+    --danger-red: 0 84% 60%;
+    
+    /* Fonts */
+    --font-display: 'JetBrains Mono', monospace;
+    --font-body: 'IBM Plex Sans', sans-serif;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    font-family: var(--font-body);
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+  }
+  
+  code, pre, .mono {
+    font-family: var(--font-display);
+  }
+}
+
+@layer components {
+  /* Scanline texture overlay */
+  .scanlines::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.03) 2px,
+      rgba(0, 0, 0, 0.03) 4px
+    );
+    z-index: 1;
+  }
+  
+  /* Dot grid background */
+  .dot-grid {
+    background-image: radial-gradient(hsl(var(--border)) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  
+  /* Card with frost glow */
+  .frost-card {
+    @apply relative bg-card border border-border rounded-md overflow-hidden;
+    border-top: 1px solid hsl(var(--frost) / 0.3);
+  }
+  
+  .frost-card:hover {
+    border-color: hsl(var(--frost) / 0.4);
+    box-shadow: 0 0 0 1px hsl(var(--frost) / 0.2), 0 4px 24px hsl(var(--frost) / 0.08);
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+  }
+  
+  /* Glowing active border */
+  .frost-glow {
+    box-shadow: 0 0 0 1px hsl(var(--frost)), var(--frost-glow);
+  }
+  
+  /* Status badge variants */
+  .badge-success {
+    @apply bg-success/10 text-success;
+  }
+  
+  .badge-warning {
+    @apply bg-warning/10 text-warning;
+  }
+  
+  .badge-danger {
+    @apply bg-destructive/10 text-destructive;
+  }
+  
+  .badge-info {
+    @apply bg-primary/10 text-primary;
+  }
+  
+  /* Pulsing dot animation */
+  .pulse-dot {
+    animation: pulse-dot 1.5s ease-in-out infinite;
+  }
+  
+  @keyframes pulse-dot {
+    0%, 100% { 
+      opacity: 1; 
+      transform: scale(1); 
+    }
+    50% { 
+      opacity: 0.4; 
+      transform: scale(0.85); 
+    }
+  }
+  
+  /* Count up animation helper */
+  .count-up {
+    animation: count-fade 0.8s ease-out;
+  }
+  
+  @keyframes count-fade {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Slide in animation for audit log */
+  .slide-in-top {
+    animation: slide-in-top 0.3s ease-out;
+  }
+  
+  @keyframes slide-in-top {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Timer drain animation */
+  .timer-drain {
+    animation: drain linear forwards;
+  }
+  
+  @keyframes drain {
+    from { width: 100%; }
+    to { width: 0%; }
+  }
+  
+  /* Sidebar frost line */
+  .sidebar-frost-line {
+    border-right: 1px solid hsl(var(--border));
+    background: linear-gradient(
+      to bottom,
+      hsl(var(--frost) / 0.3) 0%,
+      transparent 50%
+    );
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+  
+  .font-body {
+    font-family: var(--font-body);
+  }
+  
+  .text-frost {
+    color: hsl(var(--frost));
+  }
+  
+  .bg-frost {
+    background-color: hsl(var(--frost));
+  }
+  
+  .border-frost {
+    border-color: hsl(var(--frost));
+  }
+}
