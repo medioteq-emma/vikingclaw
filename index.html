@@ -1,331 +1,539 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>VikingClaw — Local-first AI Agent</title>
-  <meta name="description" content="Your AI. Your hardware. Zero leaks. Open source local-first AI agent that runs on any device."/>
+  <meta name="description" content="Run powerful AI on your own hardware. No cloud. No data leaks. Full control."/>
+  <meta property="og:title" content="VikingClaw — Local-first AI Agent"/>
+  <meta property="og:description" content="Your AI. Your hardware. Zero leaks."/>
+  <meta property="og:url" content="https://vikingclaw.com"/>
+  <meta name="twitter:card" content="summary_large_image"/>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            viking: { purple: '#6C63FF', mint: '#00D4AA', dark: '#0A0E1A', surface: '#121828' },
+            brand: '#6C63FF',
+            mint: '#00D4AA',
+            dark: '#0A0E1A',
+            surface: '#0F1629',
+            card: '#131C32',
+            border: 'rgba(255,255,255,0.07)',
           },
-          fontFamily: { mono: ['JetBrains Mono', 'monospace'], sans: ['IBM Plex Sans', 'sans-serif'] }
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+          }
         }
       }
     }
   </script>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
   <style>
-    body { background: #0A0E1A; color: #E2E8F0; font-family: 'IBM Plex Sans', sans-serif; }
-    .glow-purple { box-shadow: 0 0 40px rgba(108,99,255,0.3); }
-    .glow-mint { box-shadow: 0 0 40px rgba(0,212,170,0.2); }
-    .gradient-text { background: linear-gradient(135deg, #6C63FF, #00D4AA); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .card { background: rgba(18,24,40,0.8); border: 1px solid rgba(255,255,255,0.07); backdrop-filter: blur(12px); }
-    .install-box { background: #060A12; border: 1px solid rgba(108,99,255,0.3); }
-    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-    .float { animation: float 4s ease-in-out infinite; }
-    @keyframes pulse-glow { 0%,100%{opacity:0.5} 50%{opacity:1} }
-    .pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+    * { box-sizing: border-box; }
+    html { background: #0A0E1A; }
+    body { background: #0A0E1A; color: #E2E8F0; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+
+    /* Gradient mesh background */
+    .hero-bg {
+      background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(108,99,255,0.15), transparent),
+                  radial-gradient(ellipse 50% 50% at 80% 80%, rgba(0,212,170,0.08), transparent),
+                  #0A0E1A;
+    }
+
+    /* Glass card */
+    .glass { background: rgba(19,28,50,0.8); border: 1px solid rgba(255,255,255,0.07); backdrop-filter: blur(20px); }
+
+    /* Gradient text */
+    .grad { background: linear-gradient(135deg, #6C63FF 0%, #00D4AA 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+    /* Glows */
+    .glow-purple { box-shadow: 0 0 60px rgba(108,99,255,0.2), 0 0 120px rgba(108,99,255,0.05); }
+    .glow-mint { box-shadow: 0 0 40px rgba(0,212,170,0.15); }
+    .btn-glow:hover { box-shadow: 0 0 30px rgba(108,99,255,0.4); }
+
+    /* Code block */
+    .code-block { background: #060B16; border: 1px solid rgba(108,99,255,0.25); border-radius: 12px; }
+
+    /* Install tabs */
+    .os-tab { background: rgba(255,255,255,0.04); color: #64748b; border: 1px solid transparent; transition: all 0.2s; }
+    .os-tab:hover { background: rgba(255,255,255,0.08); color: #cbd5e1; }
+    .os-tab.active { background: rgba(108,99,255,0.15); color: #a78bfa; border-color: rgba(108,99,255,0.3); }
+
+    /* Scroll fade-in */
+    .fade-up { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+    /* Stat counter */
+    .stat-num { font-variant-numeric: tabular-nums; }
+
+    /* Feature card hover */
+    .feat-card { transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s; }
+    .feat-card:hover { border-color: rgba(108,99,255,0.3); transform: translateY(-2px); box-shadow: 0 8px 40px rgba(0,0,0,0.3); }
+
+    /* Comparison table */
+    .check { color: #00D4AA; }
+    .cross { color: #ef4444; }
+
+    /* Terminal cursor */
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    .cursor { animation: blink 1s infinite; }
+
+    /* Noise texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+    section, nav, footer { position: relative; z-index: 1; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0A0E1A; }
+    ::-webkit-scrollbar-thumb { background: rgba(108,99,255,0.3); border-radius: 3px; }
   </style>
 </head>
 <body>
 
-<!-- NAV -->
-<nav class="fixed top-0 w-full z-50 bg-[#0A0E1A]/80 backdrop-blur-md border-b border-white/5">
-  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <span class="text-2xl">⚔️</span>
-      <span class="font-bold text-lg tracking-tight">VikingClaw</span>
-      <span class="px-2 py-0.5 text-xs rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">v1.0</span>
-    </div>
-    <div class="hidden md:flex items-center gap-8 text-sm text-slate-400">
+<!-- ═══ NAVBAR ═══ -->
+<nav class="fixed top-0 w-full z-50 border-b border-white/5" style="background: rgba(10,14,26,0.85); backdrop-filter: blur(20px);">
+  <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2.5">
+      <span class="text-xl">&#9876;&#65039;</span>
+      <span class="font-bold text-base tracking-tight text-white">VikingClaw</span>
+      <span class="hidden sm:inline px-1.5 py-0.5 text-xs rounded-md bg-purple-500/15 text-purple-400 border border-purple-500/20 font-mono">v1.0</span>
+    </a>
+    <div class="hidden md:flex items-center gap-7 text-sm text-slate-400 font-medium">
       <a href="#features" class="hover:text-white transition-colors">Features</a>
+      <a href="#how-it-works" class="hover:text-white transition-colors">How it works</a>
+      <a href="#compare" class="hover:text-white transition-colors">Compare</a>
       <a href="#install" class="hover:text-white transition-colors">Install</a>
-      <a href="#models" class="hover:text-white transition-colors">Models</a>
-      <a href="https://github.com/medioteq-emma/vikingclaw" class="hover:text-white transition-colors">GitHub</a>
+      <a href="https://github.com/medioteq-emma/vikingclaw" class="hover:text-white transition-colors flex items-center gap-1.5">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub
+      </a>
     </div>
-    <a href="#install" class="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium transition-colors">
-      Get Started →
+    <a href="#install" class="px-4 py-2 rounded-lg text-sm font-semibold text-white btn-glow transition-all" style="background: linear-gradient(135deg, #6C63FF, #5a52e8);">
+      Get Started
     </a>
   </div>
 </nav>
 
-<!-- HERO -->
-<section class="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden">
-  <!-- Background grid -->
-  <div class="absolute inset-0 opacity-10" style="background-image: linear-gradient(rgba(108,99,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(108,99,255,0.1) 1px, transparent 1px); background-size: 40px 40px;"></div>
-  <!-- Glow orbs -->
-  <div class="absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-10 blur-3xl" style="background: #6C63FF;"></div>
-  <div class="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full opacity-10 blur-3xl" style="background: #00D4AA;"></div>
+<!-- ═══ HERO ═══ -->
+<section class="hero-bg min-h-screen flex flex-col items-center justify-center pt-16 pb-20 px-6 text-center overflow-hidden">
+  <!-- Grid overlay -->
+  <div class="absolute inset-0 opacity-[0.03]" style="background-image: linear-gradient(rgba(108,99,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(108,99,255,1) 1px, transparent 1px); background-size: 60px 60px;"></div>
 
-  <div class="relative z-10 max-w-5xl mx-auto px-6 text-center">
-    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full card text-sm text-slate-400 mb-8">
-      <span class="w-2 h-2 rounded-full bg-green-400 pulse-glow"></span>
-      Open source · Local-first · Privacy by default
-    </div>
+  <!-- Announcement badge -->
+  <div class="relative fade-up inline-flex items-center gap-2 px-4 py-2 rounded-full glass text-xs font-medium text-slate-400 mb-8 border border-white/5">
+    <span class="flex h-1.5 w-1.5 rounded-full bg-green-400"></span>
+    Open source &bull; Local-first &bull; Zero telemetry
+    <span class="text-purple-400">v1.0 released &rarr;</span>
+  </div>
 
-    <h1 class="text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-tight">
-      Your AI Agent.<br/>
-      <span class="gradient-text">Your Hardware.</span><br/>
-      Zero Leaks.
-    </h1>
+  <!-- Main headline -->
+  <h1 class="relative fade-up text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight mb-6 leading-[0.95]" style="transition-delay:0.1s">
+    Your AI.<br/>
+    <span class="grad">Your Machine.</span><br/>
+    <span class="text-white/90">Zero Leaks.</span>
+  </h1>
 
-    <p class="text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-      VikingClaw is a local-first AI agent that runs entirely on your device.
-      No cloud required. No data leaving your machine. Works with LM Studio, Ollama, and any local model.
-    </p>
+  <!-- Subheadline -->
+  <p class="relative fade-up text-lg sm:text-xl text-slate-400 mb-10 max-w-2xl leading-relaxed" style="transition-delay:0.2s">
+    VikingClaw is an open-source AI agent that runs entirely on your device.
+    Chat, automate, browse — powered by LM Studio or Ollama.
+    <strong class="text-white font-medium">No subscriptions. No cloud. No compromise.</strong>
+  </p>
 
-    <!-- Install command -->
-    <div id="install" class="install-box rounded-2xl p-6 max-w-2xl mx-auto mb-8 glow-purple">
-      <p class="text-xs text-slate-500 mb-3 text-left font-mono">// One-line install</p>
-      <div class="flex items-center gap-4">
-        <code class="flex-1 font-mono text-sm md:text-base text-green-400 text-left">
-          curl -fsSL https://vikingclaw.com/install.sh | sh
-        </code>
-        <button onclick="copyInstall()" class="px-4 py-2 rounded-lg bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 text-purple-400 text-sm transition-colors whitespace-nowrap" id="copy-btn">
+  <!-- Install box -->
+  <div id="install" class="relative fade-up w-full max-w-xl mb-10 glow-purple" style="transition-delay:0.3s">
+    <div class="code-block p-5 rounded-2xl">
+      <!-- OS tabs -->
+      <div class="flex gap-2 mb-4">
+        <button onclick="setOS('windows')" id="tab-windows" class="os-tab px-3 py-1.5 rounded-lg text-xs font-medium">&#129695; Windows</button>
+        <button onclick="setOS('mac')" id="tab-mac" class="os-tab px-3 py-1.5 rounded-lg text-xs font-medium">&#127822; Mac</button>
+        <button onclick="setOS('linux')" id="tab-linux" class="os-tab px-3 py-1.5 rounded-lg text-xs font-medium">&#128039; Linux</button>
+        <button onclick="setOS('wsl')" id="tab-wsl" class="os-tab px-3 py-1.5 rounded-lg text-xs font-medium">&#9645; WSL</button>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-slate-600 font-mono text-sm select-none">$</span>
+        <code id="install-cmd" class="flex-1 font-mono text-sm text-green-400 text-left"></code>
+        <button onclick="copyInstall()" id="copy-btn" class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-purple-400 hover:text-white transition-colors" style="background:rgba(108,99,255,0.1); border:1px solid rgba(108,99,255,0.2);">
+          <svg id="copy-icon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
           Copy
         </button>
       </div>
-      <div class="mt-4 pt-4 border-t border-white/5 flex flex-wrap gap-4 text-xs text-slate-500">
-        <span>🍎 macOS</span>
-        <span>🐧 Linux</span>
-        <span>🪟 Windows (WSL)</span>
-        <span>📱 Android (Termux)</span>
-        <span>🍓 Raspberry Pi</span>
-      </div>
-    </div>
-
-    <div class="flex flex-wrap items-center justify-center gap-4">
-      <a href="#google-connect" class="px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium transition-all flex items-center gap-2">
-        <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-        Connect Google Account
-      </a>
-      <a href="https://github.com/medioteq-emma/vikingclaw" class="px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium transition-all flex items-center gap-2">
-        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-        View on GitHub
-      </a>
-    </div>
-
-    <!-- Stats -->
-    <div class="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
-      <div class="card rounded-xl p-4 text-center">
-        <div class="text-2xl font-bold gradient-text">&lt;20MB</div>
-        <div class="text-xs text-slate-500 mt-1">Memory usage</div>
-      </div>
-      <div class="card rounded-xl p-4 text-center">
-        <div class="text-2xl font-bold gradient-text">&lt;1s</div>
-        <div class="text-xs text-slate-500 mt-1">Startup time</div>
-      </div>
-      <div class="card rounded-xl p-4 text-center">
-        <div class="text-2xl font-bold gradient-text">$0</div>
-        <div class="text-xs text-slate-500 mt-1">Cloud cost</div>
-      </div>
-      <div class="card rounded-xl p-4 text-center">
-        <div class="text-2xl font-bold gradient-text">12+</div>
-        <div class="text-xs text-slate-500 mt-1">Dashboard panels</div>
-      </div>
+      <p class="text-xs text-slate-600 mt-3 text-left font-mono">Then: <span class="text-slate-500">vikingclaw onboard</span> &rarr; open <span class="text-slate-500">localhost:7070</span></p>
     </div>
   </div>
-</section>
 
-<!-- FEATURES -->
-<section id="features" class="py-24 max-w-7xl mx-auto px-6">
-  <div class="text-center mb-16">
-    <h2 class="text-3xl md:text-4xl font-bold mb-4">Everything local. Nothing compromised.</h2>
-    <p class="text-slate-400 max-w-xl mx-auto">Built for privacy-conscious users who want powerful AI without sending their data to the cloud.</p>
-  </div>
-  <div class="grid md:grid-cols-3 gap-6">
-    <div class="card rounded-2xl p-6 hover:border-purple-500/30 transition-all">
-      <div class="text-3xl mb-4">🔒</div>
-      <h3 class="font-semibold text-lg mb-2">Security Center</h3>
-      <p class="text-slate-400 text-sm">Live trust score, audit log, sandbox with 5-layer protection. Every action logged and verified.</p>
-    </div>
-    <div class="card rounded-2xl p-6 hover:border-purple-500/30 transition-all">
-      <div class="text-3xl mb-4">🧠</div>
-      <h3 class="font-semibold text-lg mb-2">Smart Local Models</h3>
-      <p class="text-slate-400 text-sm">Auto-detects your PC and recommends the best models. Download with one click. Works with LM Studio &amp; Ollama.</p>
-    </div>
-    <div class="card rounded-2xl p-6 hover:border-purple-500/30 transition-all">
-      <div class="text-3xl mb-4">💬</div>
-      <h3 class="font-semibold text-lg mb-2">AI Chat</h3>
-      <p class="text-slate-400 text-sm">Chat with your local AI directly from the browser. Streaming responses, tool calls, memory.</p>
-    </div>
-    <div class="card rounded-2xl p-6 hover:border-purple-500/30 transition-all">
-      <div class="text-3xl mb-4">🌐</div>
-      <h3 class="font-semibold text-lg mb-2">Built-in Browser</h3>
-      <p class="text-slate-400 text-sm">Headless browser with VPN support. Automate web tasks safely. AI sees the page and acts on it.</p>
-    </div>
-    <div class="card rounded-2xl p-6 hover:border-purple-500/30 transition-all">
-      <div class="text-3xl mb-4">⚡</div>
-      <h3 class="font-semibold text-lg mb-2">Automation Studio</h3>
-      <p class="text-slate-400 text-sm">Visual drag-and-drop automation builder. Cron jobs, triggers, multi-step chains. No code needed.</p>
-    </div>
-    <div class="card rounded-2xl p-6 hover:border-purple-500/30 transition-all">
-      <div class="text-3xl mb-4">🗺️</div>
-      <h3 class="font-semibold text-lg mb-2">Mind Map</h3>
-      <p class="text-slate-400 text-sm">Live interactive graph of your AI system. See models, tools, memory, and automations connected.</p>
-    </div>
-    <div class="card rounded-2xl p-6 hover:border-purple-500/30 transition-all">
-      <div class="text-3xl mb-4">📧</div>
-      <h3 class="font-semibold text-lg mb-2">Google Workspace</h3>
-      <p class="text-slate-400 text-sm">Connect Gmail, Drive, Calendar, Docs. AI reads your emails, schedules, and files — all local processing.</p>
-    </div>
-    <div class="card rounded-2xl p-6 hover:border-purple-500/30 transition-all">
-      <div class="text-3xl mb-4">📱</div>
-      <h3 class="font-semibold text-lg mb-2">Telegram Bot</h3>
-      <p class="text-slate-400 text-sm">Talk to your agent on Telegram. It reads files, runs code, searches memory — from your phone.</p>
-    </div>
-    <div class="card rounded-2xl p-6 hover:border-purple-500/30 transition-all">
-      <div class="text-3xl mb-4">🏠</div>
-      <h3 class="font-semibold text-lg mb-2">Runs Anywhere</h3>
-      <p class="text-slate-400 text-sm">Single binary. Raspberry Pi, old laptop, home server, VPS. If it runs Linux — it runs VikingClaw.</p>
-    </div>
-  </div>
-</section>
-
-<!-- GOOGLE CONNECT SECTION -->
-<section id="google-connect" class="py-24 max-w-4xl mx-auto px-6">
-  <div class="card rounded-3xl p-10 text-center glow-mint">
-    <div class="text-5xl mb-6">🔗</div>
-    <h2 class="text-3xl font-bold mb-4">Connect Your Google Account</h2>
-    <p class="text-slate-400 mb-8 max-w-xl mx-auto">Connect Gmail, Drive, Calendar, and Docs to VikingClaw. Your AI reads and acts on your Google data — entirely on your device. Nothing goes to the cloud.</p>
-
-    <div class="grid md:grid-cols-2 gap-4 mb-8 text-left">
-      <div class="bg-white/5 rounded-xl p-4 flex items-start gap-3">
-        <span class="text-2xl">📧</span>
-        <div><div class="font-medium text-sm">Gmail</div><div class="text-xs text-slate-400">Read emails, send replies, smart summaries</div></div>
-      </div>
-      <div class="bg-white/5 rounded-xl p-4 flex items-start gap-3">
-        <span class="text-2xl">📅</span>
-        <div><div class="font-medium text-sm">Calendar</div><div class="text-xs text-slate-400">Events, reminders, smart scheduling</div></div>
-      </div>
-      <div class="bg-white/5 rounded-xl p-4 flex items-start gap-3">
-        <span class="text-2xl">📁</span>
-        <div><div class="font-medium text-sm">Drive</div><div class="text-xs text-slate-400">Find files, read documents, organize</div></div>
-      </div>
-      <div class="bg-white/5 rounded-xl p-4 flex items-start gap-3">
-        <span class="text-2xl">📄</span>
-        <div><div class="font-medium text-sm">Docs &amp; Sheets</div><div class="text-xs text-slate-400">Read, edit, summarize documents</div></div>
-      </div>
-    </div>
-
-    <!-- Step by step -->
-    <div class="text-left mb-8 space-y-4">
-      <h3 class="font-semibold text-center mb-4">Setup in 3 steps:</h3>
-      <div class="flex items-start gap-4">
-        <span class="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-sm font-bold shrink-0">1</span>
-        <div>
-          <div class="font-medium text-sm">Create OAuth credentials</div>
-          <div class="text-xs text-slate-400">Go to <a href="https://console.cloud.google.com" target="_blank" class="text-purple-400 underline">console.cloud.google.com</a> → APIs &amp; Services → Credentials → Create OAuth 2.0 Client ID (Desktop app) → Download JSON</div>
-        </div>
-      </div>
-      <div class="flex items-start gap-4">
-        <span class="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-sm font-bold shrink-0">2</span>
-        <div>
-          <div class="font-medium text-sm">Save the credentials file</div>
-          <div class="text-xs text-slate-400">Save the downloaded JSON as: <code class="text-green-400 font-mono">~/.config/gws/client_secret.json</code></div>
-        </div>
-      </div>
-      <div class="flex items-start gap-4">
-        <span class="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-sm font-bold shrink-0">3</span>
-        <div>
-          <div class="font-medium text-sm">Run the connect command</div>
-          <div class="install-box rounded-lg p-3 mt-1"><code class="text-green-400 font-mono text-sm">gws auth login -s drive,gmail,calendar,docs,sheets</code></div>
-        </div>
-      </div>
-    </div>
-
-    <a href="https://github.com/medioteq-emma/vikingclaw#install" class="px-8 py-4 rounded-xl text-lg font-semibold text-white transition-all inline-flex items-center gap-3 mx-auto" style="background: linear-gradient(135deg, #6C63FF, #00D4AA);">
-      <svg class="w-6 h-6" viewBox="0 0 24 24"><path fill="white" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="white" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="white" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="white" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-      Open HQ Dashboard
+  <!-- CTAs -->
+  <div class="relative fade-up flex flex-wrap items-center justify-center gap-4" style="transition-delay:0.4s">
+    <a href="https://github.com/medioteq-emma/vikingclaw" class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white glass border border-white/10 hover:border-white/20 transition-all">
+      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      View on GitHub
+    </a>
+    <a href="#how-it-works" class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white transition-colors">
+      How it works
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
     </a>
   </div>
+
+  <!-- Stats bar -->
+  <div class="relative fade-up mt-16 flex flex-wrap items-center justify-center gap-8 sm:gap-12" style="transition-delay:0.5s">
+    <div class="text-center">
+      <div class="text-2xl font-bold text-white stat-num">&lt;20<span class="text-slate-500 text-base font-normal">MB</span></div>
+      <div class="text-xs text-slate-500 mt-0.5">RAM idle</div>
+    </div>
+    <div class="w-px h-8 bg-white/10 hidden sm:block"></div>
+    <div class="text-center">
+      <div class="text-2xl font-bold text-white stat-num">&lt;1<span class="text-slate-500 text-base font-normal">s</span></div>
+      <div class="text-xs text-slate-500 mt-0.5">Startup</div>
+    </div>
+    <div class="w-px h-8 bg-white/10 hidden sm:block"></div>
+    <div class="text-center">
+      <div class="text-2xl font-bold text-white stat-num">$0</div>
+      <div class="text-xs text-slate-500 mt-0.5">Per month</div>
+    </div>
+    <div class="w-px h-8 bg-white/10 hidden sm:block"></div>
+    <div class="text-center">
+      <div class="text-2xl font-bold text-white stat-num">13<span class="text-slate-500 text-base font-normal">+</span></div>
+      <div class="text-xs text-slate-500 mt-0.5">Dashboard panels</div>
+    </div>
+    <div class="w-px h-8 bg-white/10 hidden sm:block"></div>
+    <div class="text-center">
+      <div class="text-2xl font-bold grad">MIT</div>
+      <div class="text-xs text-slate-500 mt-0.5">License</div>
+    </div>
+  </div>
 </section>
 
-<!-- MODELS SECTION -->
-<section id="models" class="py-24 max-w-7xl mx-auto px-6">
-  <div class="text-center mb-16">
-    <h2 class="text-3xl md:text-4xl font-bold mb-4">Works with any local model</h2>
-    <p class="text-slate-400">LM Studio, Ollama, or any OpenAI-compatible endpoint</p>
+<!-- ═══ SOCIAL PROOF BAR ═══ -->
+<div class="py-6 border-y border-white/5 overflow-hidden">
+  <div class="flex items-center justify-center gap-8 text-xs text-slate-600 font-medium flex-wrap px-6">
+    <span>Works with</span>
+    <span class="text-slate-400">&#9675; LM Studio</span>
+    <span class="text-slate-400">&#9675; Ollama</span>
+    <span class="text-slate-400">&#9675; Qwen 2.5</span>
+    <span class="text-slate-400">&#9675; DeepSeek R1</span>
+    <span class="text-slate-400">&#9675; Llama 3</span>
+    <span class="text-slate-400">&#9675; Mistral</span>
+    <span class="text-slate-400">&#9675; Gemma 2</span>
+    <span class="text-slate-400">&#9675; Any OpenAI-compatible model</span>
   </div>
-  <div class="grid md:grid-cols-4 gap-4">
-    <div class="card rounded-xl p-5 text-center hover:border-purple-500/30 transition-all"><div class="text-2xl mb-2">🤖</div><div class="font-medium text-sm">Smart Assistant</div><div class="text-xs text-slate-400 mt-1">Qwen 2.5 7B</div><div class="text-xs text-green-400 mt-2">8GB RAM</div></div>
-    <div class="card rounded-xl p-5 text-center hover:border-purple-500/30 transition-all"><div class="text-2xl mb-2">🧠</div><div class="font-medium text-sm">Deep Thinker</div><div class="text-xs text-slate-400 mt-1">DeepSeek R1 7B</div><div class="text-xs text-green-400 mt-2">8GB RAM</div></div>
-    <div class="card rounded-xl p-5 text-center hover:border-purple-500/30 transition-all"><div class="text-2xl mb-2">💻</div><div class="font-medium text-sm">Code Writer</div><div class="text-xs text-slate-400 mt-1">Qwen 2.5 Coder</div><div class="text-xs text-green-400 mt-2">8GB RAM</div></div>
-    <div class="card rounded-xl p-5 text-center hover:border-purple-500/30 transition-all"><div class="text-2xl mb-2">👁️</div><div class="font-medium text-sm">Image Reader</div><div class="text-xs text-slate-400 mt-1">LLaVA 7B</div><div class="text-xs text-green-400 mt-2">8GB RAM</div></div>
+</div>
+
+<!-- ═══ HOW IT WORKS ═══ -->
+<section id="how-it-works" class="py-28 max-w-5xl mx-auto px-6">
+  <div class="text-center mb-16 fade-up">
+    <p class="text-xs font-semibold text-purple-400 uppercase tracking-widest mb-3">How it works</p>
+    <h2 class="text-3xl sm:text-4xl font-bold text-white">Up and running in 3 steps</h2>
+  </div>
+  <div class="grid md:grid-cols-3 gap-6">
+    <div class="glass rounded-2xl p-7 fade-up relative overflow-hidden">
+      <div class="absolute top-4 right-4 text-6xl font-black text-white/5 select-none">1</div>
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-5 text-xl" style="background:rgba(108,99,255,0.15)">&#11123;</div>
+      <h3 class="font-bold text-base mb-2">Install VikingClaw</h3>
+      <p class="text-sm text-slate-400 leading-relaxed">One command installs the binary. Works on Windows, Mac, Linux, and Raspberry Pi.</p>
+      <div class="mt-4 code-block px-3 py-2 rounded-lg text-xs font-mono text-green-400">irm vikingclaw.com/install.ps1 | iex</div>
+    </div>
+    <div class="glass rounded-2xl p-7 fade-up relative overflow-hidden" style="transition-delay:0.1s">
+      <div class="absolute top-4 right-4 text-6xl font-black text-white/5 select-none">2</div>
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-5 text-xl" style="background:rgba(0,212,170,0.1)">&#129504;</div>
+      <h3 class="font-bold text-base mb-2">Load a Local Model</h3>
+      <p class="text-sm text-slate-400 leading-relaxed">Open LM Studio or Ollama, download any model. VikingClaw auto-detects it instantly — no config.</p>
+      <div class="mt-4 code-block px-3 py-2 rounded-lg text-xs font-mono text-green-400">ollama pull qwen2.5:7b</div>
+    </div>
+    <div class="glass rounded-2xl p-7 fade-up relative overflow-hidden" style="transition-delay:0.2s">
+      <div class="absolute top-4 right-4 text-6xl font-black text-white/5 select-none">3</div>
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-5 text-xl" style="background:rgba(108,99,255,0.15)">&#9889;</div>
+      <h3 class="font-bold text-base mb-2">Open Your Dashboard</h3>
+      <p class="text-sm text-slate-400 leading-relaxed">Run <code class="text-purple-400">vikingclaw start</code> and open <code class="text-purple-400">localhost:7070</code>. Your private AI HQ is live.</p>
+      <div class="mt-4 code-block px-3 py-2 rounded-lg text-xs font-mono text-green-400">vikingclaw start &rarr; localhost:7070</div>
+    </div>
   </div>
 </section>
 
-<!-- INSTALL -->
-<section class="py-24 max-w-4xl mx-auto px-6 text-center">
-  <h2 class="text-3xl md:text-4xl font-bold mb-4">Get started in seconds</h2>
-  <p class="text-slate-400 mb-10">One command. Works on any machine.</p>
-  <div class="install-box rounded-2xl p-8 mb-6 glow-purple">
+<!-- ═══ FEATURES ═══ -->
+<section id="features" class="py-28 max-w-6xl mx-auto px-6">
+  <div class="text-center mb-16 fade-up">
+    <p class="text-xs font-semibold text-purple-400 uppercase tracking-widest mb-3">Features</p>
+    <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">Everything you need. Nothing you don't.</h2>
+    <p class="text-slate-400 max-w-xl mx-auto">A complete AI platform that respects your privacy and works on hardware you already own.</p>
+  </div>
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div class="feat-card glass rounded-2xl p-6 fade-up">
+      <div class="text-2xl mb-4">&#128172;</div>
+      <h3 class="font-semibold text-base mb-2">AI Chat</h3>
+      <p class="text-slate-400 text-sm leading-relaxed">Stream word-by-word responses from any local model. Tool calls, memory, reasoning — all local.</p>
+    </div>
+    <div class="feat-card glass rounded-2xl p-6 fade-up" style="transition-delay:0.05s">
+      <div class="text-2xl mb-4">&#129504;</div>
+      <h3 class="font-semibold text-base mb-2">Smart Model Manager</h3>
+      <p class="text-slate-400 text-sm leading-relaxed">Auto-detects your hardware. Recommends what models fit your PC. One-click download with live progress.</p>
+    </div>
+    <div class="feat-card glass rounded-2xl p-6 fade-up" style="transition-delay:0.1s">
+      <div class="text-2xl mb-4">&#128272;</div>
+      <h3 class="font-semibold text-base mb-2">Security Sandbox</h3>
+      <p class="text-slate-400 text-sm leading-relaxed">5-layer sandbox, credential scrubbing, tamper-evident audit log. Know exactly what your AI can touch.</p>
+    </div>
+    <div class="feat-card glass rounded-2xl p-6 fade-up" style="transition-delay:0.15s">
+      <div class="text-2xl mb-4">&#127760;</div>
+      <h3 class="font-semibold text-base mb-2">Built-in Browser</h3>
+      <p class="text-slate-400 text-sm leading-relaxed">Headless browser your AI controls. Search, scrape, automate — without a cloud middleman.</p>
+    </div>
+    <div class="feat-card glass rounded-2xl p-6 fade-up" style="transition-delay:0.2s">
+      <div class="text-2xl mb-4">&#9889;</div>
+      <h3 class="font-semibold text-base mb-2">Automation Engine</h3>
+      <p class="text-slate-400 text-sm leading-relaxed">Visual rule builder. Cron jobs, triggers, multi-step chains. Schedule tasks to run while you sleep.</p>
+    </div>
+    <div class="feat-card glass rounded-2xl p-6 fade-up" style="transition-delay:0.25s">
+      <div class="text-2xl mb-4">&#128200;</div>
+      <h3 class="font-semibold text-base mb-2">Live Mind Map</h3>
+      <p class="text-slate-400 text-sm leading-relaxed">Interactive graph of your entire AI system — models, tools, memory, automations — all connected.</p>
+    </div>
+    <div class="feat-card glass rounded-2xl p-6 fade-up" style="transition-delay:0.3s">
+      <div class="text-2xl mb-4">&#128203;</div>
+      <h3 class="font-semibold text-base mb-2">Google Workspace</h3>
+      <p class="text-slate-400 text-sm leading-relaxed">Connect Gmail, Drive, Calendar, Docs. Your AI reads and acts on your Google data — entirely locally.</p>
+    </div>
+    <div class="feat-card glass rounded-2xl p-6 fade-up" style="transition-delay:0.35s">
+      <div class="text-2xl mb-4">&#129302;</div>
+      <h3 class="font-semibold text-base mb-2">Telegram Bot</h3>
+      <p class="text-slate-400 text-sm leading-relaxed">Talk to your agent from anywhere via Telegram. It reads files, runs code, and searches memory remotely.</p>
+    </div>
+    <div class="feat-card glass rounded-2xl p-6 fade-up" style="transition-delay:0.4s">
+      <div class="text-2xl mb-4">&#127968;</div>
+      <h3 class="font-semibold text-base mb-2">Runs Anywhere</h3>
+      <p class="text-slate-400 text-sm leading-relaxed">Single Go binary. Raspberry Pi, old laptop, VPS. Under 20MB RAM idle. Under 1 second to start.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ COMPARISON ═══ -->
+<section id="compare" class="py-28 max-w-4xl mx-auto px-6">
+  <div class="text-center mb-12 fade-up">
+    <p class="text-xs font-semibold text-purple-400 uppercase tracking-widest mb-3">Why VikingClaw</p>
+    <h2 class="text-3xl sm:text-4xl font-bold text-white">Private by design</h2>
+    <p class="text-slate-400 mt-3 max-w-lg mx-auto">Compare with cloud AI alternatives.</p>
+  </div>
+  <div class="glass rounded-2xl overflow-hidden fade-up">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-white/5">
+          <th class="text-left px-6 py-4 text-slate-400 font-medium">Feature</th>
+          <th class="px-6 py-4 text-white font-bold text-center">
+            <span class="grad">VikingClaw</span>
+          </th>
+          <th class="px-6 py-4 text-slate-500 font-medium text-center">ChatGPT</th>
+          <th class="px-6 py-4 text-slate-500 font-medium text-center">Claude</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-white/5">
+        <tr class="hover:bg-white/[0.02] transition-colors">
+          <td class="px-6 py-3.5 text-slate-300">100% private (no data sent)</td>
+          <td class="px-6 py-3.5 text-center check font-bold">&#10003;</td>
+          <td class="px-6 py-3.5 text-center cross">&#10007;</td>
+          <td class="px-6 py-3.5 text-center cross">&#10007;</td>
+        </tr>
+        <tr class="hover:bg-white/[0.02] transition-colors">
+          <td class="px-6 py-3.5 text-slate-300">Works offline</td>
+          <td class="px-6 py-3.5 text-center check font-bold">&#10003;</td>
+          <td class="px-6 py-3.5 text-center cross">&#10007;</td>
+          <td class="px-6 py-3.5 text-center cross">&#10007;</td>
+        </tr>
+        <tr class="hover:bg-white/[0.02] transition-colors">
+          <td class="px-6 py-3.5 text-slate-300">Free forever</td>
+          <td class="px-6 py-3.5 text-center check font-bold">&#10003;</td>
+          <td class="px-6 py-3.5 text-center text-slate-500 text-xs">$20/mo</td>
+          <td class="px-6 py-3.5 text-center text-slate-500 text-xs">$20/mo</td>
+        </tr>
+        <tr class="hover:bg-white/[0.02] transition-colors">
+          <td class="px-6 py-3.5 text-slate-300">Open source</td>
+          <td class="px-6 py-3.5 text-center check font-bold">&#10003;</td>
+          <td class="px-6 py-3.5 text-center cross">&#10007;</td>
+          <td class="px-6 py-3.5 text-center cross">&#10007;</td>
+        </tr>
+        <tr class="hover:bg-white/[0.02] transition-colors">
+          <td class="px-6 py-3.5 text-slate-300">Full automation &amp; tools</td>
+          <td class="px-6 py-3.5 text-center check font-bold">&#10003;</td>
+          <td class="px-6 py-3.5 text-center text-slate-400 text-xs">partial</td>
+          <td class="px-6 py-3.5 text-center text-slate-400 text-xs">partial</td>
+        </tr>
+        <tr class="hover:bg-white/[0.02] transition-colors">
+          <td class="px-6 py-3.5 text-slate-300">Runs on your hardware</td>
+          <td class="px-6 py-3.5 text-center check font-bold">&#10003;</td>
+          <td class="px-6 py-3.5 text-center cross">&#10007;</td>
+          <td class="px-6 py-3.5 text-center cross">&#10007;</td>
+        </tr>
+        <tr class="hover:bg-white/[0.02] transition-colors">
+          <td class="px-6 py-3.5 text-slate-300">No account required</td>
+          <td class="px-6 py-3.5 text-center check font-bold">&#10003;</td>
+          <td class="px-6 py-3.5 text-center cross">&#10007;</td>
+          <td class="px-6 py-3.5 text-center cross">&#10007;</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══ GOOGLE CONNECT ═══ -->
+<section id="google" class="py-28 max-w-4xl mx-auto px-6">
+  <div class="glass rounded-3xl p-10 sm:p-14 glow-mint fade-up">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shrink-0" style="background:rgba(0,212,170,0.1); border:1px solid rgba(0,212,170,0.2)">&#128279;</div>
+      <div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-white">Connect Google Workspace</h2>
+        <p class="text-slate-400 text-sm mt-1">Gmail, Drive, Calendar, Docs — processed locally. Nothing goes to the cloud.</p>
+      </div>
+    </div>
+    <div class="grid sm:grid-cols-4 gap-3 mb-8">
+      <div class="glass rounded-xl p-4 text-center"><div class="text-2xl mb-1">&#128140;</div><div class="text-xs text-slate-400">Gmail</div></div>
+      <div class="glass rounded-xl p-4 text-center"><div class="text-2xl mb-1">&#128197;</div><div class="text-xs text-slate-400">Calendar</div></div>
+      <div class="glass rounded-xl p-4 text-center"><div class="text-2xl mb-1">&#128193;</div><div class="text-xs text-slate-400">Drive</div></div>
+      <div class="glass rounded-xl p-4 text-center"><div class="text-2xl mb-1">&#128196;</div><div class="text-xs text-slate-400">Docs</div></div>
+    </div>
     <div class="space-y-4">
-      <div>
-        <p class="text-xs text-slate-500 mb-2 text-left font-mono">// macOS / Linux / WSL</p>
-        <div class="flex items-center gap-4 bg-black/30 rounded-lg px-4 py-3">
-          <code class="flex-1 font-mono text-green-400 text-sm text-left">curl -fsSL https://vikingclaw.com/install.sh | sh</code>
-          <button onclick="copyText('curl -fsSL https://vikingclaw.com/install.sh | sh', this)" class="text-xs text-slate-500 hover:text-white">Copy</button>
-        </div>
+      <div class="flex items-start gap-4">
+        <span class="w-7 h-7 rounded-full bg-purple-600 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</span>
+        <div class="text-sm"><span class="text-white font-medium">Create OAuth credentials</span> — <a href="https://console.cloud.google.com" target="_blank" class="text-purple-400 underline underline-offset-2">console.cloud.google.com</a> &rarr; APIs &amp; Services &rarr; Credentials &rarr; OAuth 2.0 Client ID (Desktop app) &rarr; Download JSON</div>
       </div>
-      <div>
-        <p class="text-xs text-slate-500 mb-2 text-left font-mono">// Windows PowerShell</p>
-        <div class="flex items-center gap-4 bg-black/30 rounded-lg px-4 py-3">
-          <code class="flex-1 font-mono text-green-400 text-sm text-left">irm https://vikingclaw.com/install.ps1 | iex</code>
-          <button onclick="copyText('irm https://vikingclaw.com/install.ps1 | iex', this)" class="text-xs text-slate-500 hover:text-white">Copy</button>
-        </div>
+      <div class="flex items-start gap-4">
+        <span class="w-7 h-7 rounded-full bg-purple-600 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</span>
+        <div class="text-sm"><span class="text-white font-medium">Save to</span> <code class="text-green-400 font-mono text-xs bg-black/30 px-2 py-0.5 rounded">~/.config/gws/client_secret.json</code></div>
       </div>
-      <div>
-        <p class="text-xs text-slate-500 mb-2 text-left font-mono">// npm (global)</p>
-        <div class="flex items-center gap-4 bg-black/30 rounded-lg px-4 py-3">
-          <code class="flex-1 font-mono text-green-400 text-sm text-left">npm install -g vikingclaw</code>
-          <button onclick="copyText('npm install -g vikingclaw', this)" class="text-xs text-slate-500 hover:text-white">Copy</button>
-        </div>
+      <div class="flex items-start gap-4">
+        <span class="w-7 h-7 rounded-full bg-purple-600 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</span>
+        <div class="text-sm"><span class="text-white font-medium">Run</span> <code class="text-green-400 font-mono text-xs bg-black/30 px-2 py-0.5 rounded">gws auth login -s drive,gmail,calendar,docs,sheets</code></div>
       </div>
     </div>
   </div>
-  <p class="text-slate-500 text-sm">After install: <code class="text-green-400 font-mono">vikingclaw onboard</code> to set up in 2 minutes</p>
 </section>
 
-<!-- FOOTER -->
-<footer class="border-t border-white/5 py-12 max-w-7xl mx-auto px-6">
-  <div class="flex flex-col md:flex-row items-center justify-between gap-6">
-    <div class="flex items-center gap-3">
-      <span class="text-2xl">⚔️</span>
-      <div>
-        <div class="font-bold">VikingClaw</div>
-        <div class="text-xs text-slate-500">By Medioteq · Built with ❤️ for privacy</div>
+<!-- ═══ SECURITY TRUST ═══ -->
+<section class="py-16 max-w-5xl mx-auto px-6 fade-up">
+  <div class="glass rounded-2xl p-8">
+    <h3 class="font-bold text-center text-white mb-6">Security you can verify</h3>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div class="text-center p-4 rounded-xl" style="background:rgba(0,212,170,0.05); border:1px solid rgba(0,212,170,0.1)">
+        <div class="text-2xl mb-2">&#128737;</div>
+        <div class="text-xs font-medium text-white">5-layer sandbox</div>
+        <div class="text-xs text-slate-500 mt-0.5">Every tool call checked</div>
+      </div>
+      <div class="text-center p-4 rounded-xl" style="background:rgba(0,212,170,0.05); border:1px solid rgba(0,212,170,0.1)">
+        <div class="text-2xl mb-2">&#128260;</div>
+        <div class="text-xs font-medium text-white">Credential scrubbing</div>
+        <div class="text-xs text-slate-500 mt-0.5">Keys never exposed</div>
+      </div>
+      <div class="text-center p-4 rounded-xl" style="background:rgba(0,212,170,0.05); border:1px solid rgba(0,212,170,0.1)">
+        <div class="text-2xl mb-2">&#128203;</div>
+        <div class="text-xs font-medium text-white">Audit log</div>
+        <div class="text-xs text-slate-500 mt-0.5">Tamper-evident trail</div>
+      </div>
+      <div class="text-center p-4 rounded-xl" style="background:rgba(0,212,170,0.05); border:1px solid rgba(0,212,170,0.1)">
+        <div class="text-2xl mb-2">&#127968;</div>
+        <div class="text-xs font-medium text-white">100% local</div>
+        <div class="text-xs text-slate-500 mt-0.5">Zero telemetry</div>
       </div>
     </div>
-    <div class="flex items-center gap-6 text-sm text-slate-400">
-      <a href="https://github.com/medioteq-emma/vikingclaw" class="hover:text-white">GitHub</a>
-      <a href="#" class="hover:text-white">Documentation</a>
-      <a href="#" class="hover:text-white">Discord</a>
-      <a href="mailto:info@medioteq.no" class="hover:text-white">Contact</a>
+  </div>
+</section>
+
+<!-- ═══ CTA ═══ -->
+<section class="py-28 max-w-4xl mx-auto px-6 text-center fade-up">
+  <div class="glass rounded-3xl p-12 glow-purple">
+    <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">Ready to own your AI?</h2>
+    <p class="text-slate-400 mb-8 max-w-lg mx-auto">Install VikingClaw in seconds. No account. No credit card. No cloud.</p>
+    <div class="code-block rounded-xl px-6 py-4 max-w-md mx-auto mb-6">
+      <div class="flex items-center gap-3">
+        <span class="text-slate-600 font-mono select-none">$</span>
+        <code id="cta-cmd" class="flex-1 font-mono text-sm text-green-400 text-left"></code>
+        <button onclick="copyCTA()" id="cta-copy" class="text-xs text-slate-500 hover:text-white transition-colors font-mono">copy</button>
+      </div>
     </div>
-    <div class="text-xs text-slate-600">MIT License · Free forever · Open source</div>
+    <div class="flex flex-wrap items-center justify-center gap-4">
+      <a href="https://github.com/medioteq-emma/vikingclaw" class="px-6 py-3 rounded-xl text-sm font-semibold text-white glass border border-white/10 hover:border-white/20 transition-all flex items-center gap-2">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        Star on GitHub
+      </a>
+    </div>
+    <p class="text-xs text-slate-600 mt-6">MIT License &bull; Free forever &bull; Open source</p>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer class="border-t border-white/5 py-12">
+  <div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-6">
+    <div class="flex items-center gap-3">
+      <span class="text-lg">&#9876;&#65039;</span>
+      <div>
+        <div class="font-bold text-sm text-white">VikingClaw</div>
+        <div class="text-xs text-slate-600">By <a href="mailto:info@medioteq.no" class="hover:text-slate-400 transition-colors">Medioteq</a> &bull; Built for privacy</div>
+      </div>
+    </div>
+    <div class="flex items-center gap-6 text-sm text-slate-500">
+      <a href="https://github.com/medioteq-emma/vikingclaw" class="hover:text-white transition-colors">GitHub</a>
+      <a href="https://github.com/medioteq-emma/vikingclaw/blob/main/GETTING_STARTED.md" class="hover:text-white transition-colors">Docs</a>
+      <a href="https://github.com/medioteq-emma/vikingclaw/issues" class="hover:text-white transition-colors">Issues</a>
+      <a href="mailto:info@medioteq.no" class="hover:text-white transition-colors">Contact</a>
+    </div>
+    <div class="text-xs text-slate-700">MIT License &bull; No telemetry</div>
   </div>
 </footer>
 
 <script>
+// OS detection + tab switcher
+const osCmds = {
+  windows: 'irm https://vikingclaw.com/install.ps1 | iex',
+  mac:     'curl -fsSL https://vikingclaw.com/install.sh | sh',
+  linux:   'curl -fsSL https://vikingclaw.com/install.sh | sh',
+  wsl:     'curl -fsSL https://vikingclaw.com/install.sh | sh'
+};
+let currentOS = 'windows';
+function setOS(os) {
+  currentOS = os;
+  document.querySelectorAll('.os-tab').forEach(t => t.classList.remove('active'));
+  const tab = document.getElementById('tab-'+os);
+  if (tab) tab.classList.add('active');
+  const el = document.getElementById('install-cmd');
+  if (el) el.textContent = osCmds[os];
+  const cta = document.getElementById('cta-cmd');
+  if (cta) cta.textContent = osCmds[os];
+}
 function copyInstall() {
-  navigator.clipboard.writeText('curl -fsSL https://vikingclaw.com/install.sh | sh');
+  navigator.clipboard.writeText(osCmds[currentOS]);
   const btn = document.getElementById('copy-btn');
   btn.textContent = 'Copied!';
-  setTimeout(() => btn.textContent = 'Copy', 2000);
+  btn.style.color = '#00D4AA';
+  setTimeout(() => {
+    btn.innerHTML = '<svg class="w-3.5 h-3.5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>Copy';
+    btn.style.color = '';
+  }, 2000);
 }
-function copyText(text, btn) {
-  navigator.clipboard.writeText(text);
-  const orig = btn.textContent;
-  btn.textContent = '✓';
-  setTimeout(() => btn.textContent = orig, 2000);
+function copyCTA() {
+  navigator.clipboard.writeText(osCmds[currentOS]);
+  const btn = document.getElementById('cta-copy');
+  btn.textContent = 'copied!';
+  btn.style.color = '#00D4AA';
+  setTimeout(() => { btn.textContent = 'copy'; btn.style.color = ''; }, 2000);
 }
+// Auto-detect OS
+const ua = navigator.userAgent.toLowerCase();
+const detected = ua.includes('win') ? 'windows' : ua.includes('mac') ? 'mac' : 'linux';
+setOS(detected);
+
+// Scroll fade-in
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+}, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
 </script>
 </body>
 </html>
-
