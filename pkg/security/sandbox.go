@@ -138,3 +138,64 @@ func (p *SecurityPolicy) ActionsThisHour() int {
 	defer p.mu.Unlock()
 	return p.actionsHour
 }
+
+// DefaultForbiddenPaths is the hardcoded baseline of paths that are always blocked.
+var DefaultForbiddenPaths = []string{
+	"/etc/passwd", "/etc/shadow", "/etc/hosts", "/etc/sudoers",
+	"~/.ssh", "~/.aws", "~/.gnupg",
+	"/proc/", "/sys/",
+	`C:\Windows\System32`, `C:\Windows\SysWOW64`,
+	".openclaw/", "openclaw.json",
+	"client_secret.json", "token.json",
+}
+
+// DefaultForbiddenShellCommands is the hardcoded baseline of shell commands that are always blocked.
+var DefaultForbiddenShellCommands = []string{
+	"rm -rf /", "dd if=", "mkfs", "fdisk", "format c:",
+	"sudo su", "sudo -i", "sudo passwd",
+	"chmod 777 /", "> /dev/sda",
+	"curl | bash", "wget | sh", "curl | sh",
+	":(){:|:&};:", // fork bomb
+}
+
+// IsPathForbidden returns true if the given path matches any forbidden path
+// in both the policy's dynamic list and the hardcoded default list.
+func (p *SecurityPolicy) IsPathForbidden(path string) bool {
+	clean := filepath.Clean(path)
+	// Check dynamic list from config
+	for _, forbidden := range p.ForbiddenPaths {
+		if strings.HasPrefix(clean, forbidden) || strings.Contains(path, forbidden) {
+			return true
+		}
+	}
+	// Check hardcoded defaults
+	for _, forbidden := range DefaultForbiddenPaths {
+		if strings.HasPrefix(clean, forbidden) || strings.Contains(path, forbidden) {
+			return true
+		}
+	}
+	return false
+}
+
+// IsCommandForbidden returns true if the given command matches any forbidden command
+// in both the policy's dynamic deny list and the hardcoded default list.
+func (p *SecurityPolicy) IsCommandForbidden(cmd string) bool {
+	// Check dynamic deny list from config
+	for _, denied := range p.DenyCommands {
+		if strings.Contains(cmd, denied) {
+			return true
+		}
+	}
+	// Check hardcoded defaults
+	for _, denied := range DefaultForbiddenShellCommands {
+		if strings.Contains(cmd, denied) {
+			return true
+		}
+	}
+	return false
+}
+
+// Scrub delegates to the package-level Scrub function for credential redaction.
+func (p *SecurityPolicy) Scrub(input string) string {
+	return Scrub(input)
+}

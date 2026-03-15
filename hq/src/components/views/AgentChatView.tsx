@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Bot, User, Loader, Trash2, Zap, RefreshCw } from 'lucide-react';
+import { Send, Bot, User, Loader, Trash2, Zap, RefreshCw, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const BASE = 'http://localhost:7070';
@@ -18,6 +18,15 @@ interface ChatMessage {
   provider?: string; // 'lmstudio' | 'ollama' | 'cloud' | undefined
 }
 
+interface TaskLogEntry {
+  id: string;
+  text: string;
+  status: 'processing' | 'done' | 'failed';
+  startedAt: Date;
+  durationMs?: number;
+  provider?: string;
+}
+
 const STARTER_PROMPTS = [
   'What tools do you have available?',
   'Summarize my memory files',
@@ -29,6 +38,8 @@ const STARTER_PROMPTS = [
 function mkId() { return crypto.randomUUID(); }
 
 export function AgentChatView() {
+  const [taskLog, setTaskLog] = useState<TaskLogEntry[]>([]);
+  const [showTaskLog, setShowTaskLog] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
@@ -69,6 +80,16 @@ export function AgentChatView() {
 
     setInput('');
     setSending(true);
+
+    // Track in task log
+    const taskId = mkId();
+    const taskStart = Date.now();
+    setTaskLog(prev => [{
+      id: taskId,
+      text: text.length > 60 ? text.slice(0, 60) + '…' : text,
+      status: 'processing',
+      startedAt: new Date(),
+    }, ...prev.slice(0, 19)]);
 
     // Add user message
     addMsg({ role: 'user', content: text });
@@ -151,12 +172,18 @@ export function AgentChatView() {
             setMessages(prev => prev.map(m =>
               m.id === streamId ? { ...m, streaming: false, provider: evt.provider } : m
             ));
+            setTaskLog(prev => prev.map(t =>
+              t.id === taskId ? { ...t, status: 'done', durationMs: Date.now() - taskStart, provider: evt.provider } : t
+            ));
             break;
           } else if (evt.type === 'error') {
             setMessages(prev => [
               ...prev.filter(m => m.id !== streamId),
               { id: mkId(), role: 'agent', content: `❌ ${evt.message ?? 'Unknown error'}`, error: true, ts: new Date() },
             ]);
+            setTaskLog(prev => prev.map(t =>
+              t.id === taskId ? { ...t, status: 'failed', durationMs: Date.now() - taskStart } : t
+            ));
             break;
           }
         }
@@ -167,6 +194,9 @@ export function AgentChatView() {
       if ((e as Error)?.name !== 'AbortError') {
         const msg = e instanceof Error ? e.message : String(e);
         addMsg({ role: 'agent', content: `❌ Could not reach Viking agent: ${msg}`, error: true });
+        setTaskLog(prev => prev.map(t =>
+          t.id === taskId ? { ...t, status: 'failed', durationMs: Date.now() - taskStart } : t
+        ));
       }
     } finally {
       setSending(false);
@@ -238,6 +268,14 @@ export function AgentChatView() {
           </div>
         </div>
         <div className="flex items-center gap-1.5">
+          <button onClick={() => setShowTaskLog(v => !v)}
+            className={cn('p-1.5 rounded hover:bg-muted/50 transition-colors flex items-center gap-1', showTaskLog && 'bg-muted/50')}
+            title="Task log">
+            <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+            {taskLog.length > 0 && (
+              <span className="text-[10px] font-display text-frost">{taskLog.length}</span>
+            )}
+          </button>
           <button onClick={checkStatus}
             className="p-1.5 rounded hover:bg-muted/50 transition-colors" title="Check status">
             <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />
@@ -331,6 +369,43 @@ export function AgentChatView() {
               {prompt}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Task Log Panel */}
+      {showTaskLog && (
+        <div className="px-4 py-3 border-t border-border bg-muted/10 shrink-0 max-h-44 overflow-y-auto">
+          <div className="flex items-center gap-2 mb-2">
+            <Clock className="w-3.5 h-3.5 text-frost" />
+            <span className="font-display text-xs font-bold text-foreground">TASK LOG</span>
+            {taskLog.length === 0 && (
+              <span className="text-xs text-muted-foreground font-display">No tasks yet</span>
+            )}
+          </div>
+          <div className="space-y-1">
+            {taskLog.map(task => (
+              <div key={task.id} className="flex items-center gap-2 text-xs font-display py-1 border-b border-border/30">
+                <span className="shrink-0">
+                  {task.status === 'processing' ? '⏳' : task.status === 'done' ? '✅' : '❌'}
+                </span>
+                <span className="flex-1 truncate text-foreground">{task.text}</span>
+                {task.durationMs != null && (
+                  <span className="text-muted-foreground shrink-0">{(task.durationMs / 1000).toFixed(1)}s</span>
+                )}
+                {task.provider && (
+                  <span className={cn(
+                    'shrink-0 px-1.5 py-0.5 rounded-full border text-[10px]',
+                    task.provider === 'ollama' ? 'text-yellow-400 border-yellow-700/40 bg-yellow-900/20' :
+                    task.provider === 'lmstudio' ? 'text-emerald-400 border-emerald-700/40 bg-emerald-900/20' :
+                    'text-blue-400 border-blue-700/40 bg-blue-900/20'
+                  )}>
+                    {task.provider === 'lmstudio' ? 'LM Studio' : task.provider}
+                  </span>
+                )}
+                <span className="text-muted-foreground/50 shrink-0">{task.startedAt.toLocaleTimeString()}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

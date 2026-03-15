@@ -14,6 +14,13 @@ interface OllamaStatus {
   running: boolean;
 }
 
+interface SandboxStatus {
+  active: boolean;
+  forbidden_paths: number;
+  forbidden_commands: number;
+  scrubber_patterns: number;
+}
+
 interface StatusData {
   status: string;
   version: string;
@@ -21,8 +28,9 @@ interface StatusData {
   agentName: string;
   timestamp: string;
   lmstudio?: LMStudioStatus;
-  ollama?: OllamaStatus;
+  ollama?: OllamaStatus & { model?: string };
   active_provider?: string;
+  sandbox?: SandboxStatus;
 }
 
 function ProviderBadge({ status }: { status: StatusData | null }) {
@@ -44,10 +52,13 @@ function ProviderBadge({ status }: { status: StatusData | null }) {
   }
 
   if (ol?.running) {
+    const modelName = ol.model ? (ol.model.length > 18 ? ol.model.slice(0, 18) + '…' : ol.model) : '';
     return (
       <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-yellow-900/40 border border-yellow-700/50">
         <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
-        <span className="text-[11px] font-display font-bold text-yellow-400 tracking-wide">Ollama</span>
+        <span className="text-[11px] font-display font-bold text-yellow-400 tracking-wide">
+          Ollama{modelName ? `: ${modelName}` : ''}
+        </span>
       </div>
     );
   }
@@ -101,6 +112,13 @@ export function Topbar() {
 
       {/* Right: trust, uptime, clock, settings */}
       <div className="flex items-center gap-3 shrink-0">
+        {/* Sandbox badge */}
+        {status?.sandbox?.active && (
+          <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-900/30 border border-green-700/40">
+            <span className="text-[10px]">🛡️</span>
+            <span className="text-[10px] font-display font-bold text-green-400 tracking-wide">Sandbox ON</span>
+          </div>
+        )}
         <div className="flex items-center gap-1.5 bg-muted/50 px-2.5 py-1 rounded">
           <span className="text-xs font-display text-muted-foreground uppercase tracking-wide">Trust</span>
           <TrustScoreRing score={94} />

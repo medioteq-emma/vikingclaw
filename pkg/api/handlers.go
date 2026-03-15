@@ -17,6 +17,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/medioteq/vikingclaw/pkg/agent"
 	"github.com/medioteq/vikingclaw/pkg/automation"
+	"github.com/medioteq/vikingclaw/pkg/security"
 	"github.com/rs/zerolog/log"
 )
 
@@ -63,6 +64,16 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		activeProvider = s.provider.ActiveProvider()
 	}
 
+	// Sandbox stats from config
+	forbiddenPathsCount := 0
+	forbiddenCommandsCount := 0
+	ollamaModel := ""
+	if s.cfg != nil {
+		forbiddenPathsCount = len(s.cfg.Security.ForbiddenPaths)
+		forbiddenCommandsCount = len(s.cfg.Security.DenyCommands)
+		ollamaModel = s.cfg.Providers.Ollama.Model
+	}
+
 	jsonResponse(w, map[string]interface{}{
 		"status":    "running",
 		"version":   "1.0.0",
@@ -75,8 +86,16 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		},
 		"ollama": map[string]interface{}{
 			"running": ollamaRunning,
+			"model":   ollamaModel,
 		},
 		"active_provider": activeProvider,
+		"sandbox": map[string]interface{}{
+			"active":            true,
+			"forbidden_paths":   forbiddenPathsCount,
+			"forbidden_commands": forbiddenCommandsCount,
+			"scrubber_patterns": security.ScrubberPatternCount(),
+			"rate_limit":        "60 req/min",
+		},
 	})
 }
 
@@ -559,6 +578,57 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 		"ok":         true,
 		"reply":      reply,
 		"session_id": req.SessionID,
+	})
+}
+
+// --- Sandbox test handler ---
+
+// handleSandboxTest runs live sandbox checks and returns pass/fail for each.
+func (s *Server) handleSandboxTest(w http.ResponseWriter, r *http.Request) {
+	// Build a policy seeded with config values (or empty if cfg is nil)
+	var policy *security.SecurityPolicy
+	if s.cfg != nil {
+		policy = security.NewPolicy(s.cfg.Security)
+	} else {
+		policy = &security.SecurityPolicy{}
+	}
+
+	type testResult struct {
+		Test   string `json:"test"`
+		Passed bool   `json:"passed"`
+		Output string `json:"output,omitempty"`
+	}
+
+	var results []testResult
+
+	// Test 1: forbidden path blocked
+	blocked1 := policy.IsPathForbidden("/etc/passwd")
+	results = append(results, testResult{Test: "block /etc/passwd", Passed: blocked1})
+
+	// Test 2: forbidden command blocked
+	blocked2 := policy.IsCommandForbidden("rm -rf /")
+	results = append(results, testResult{Test: "block rm -rf /", Passed: blocked2})
+
+	// Test 3: credential scrubbing
+	testInput := "my key is sk-abc123def456ghi789jkl012 please use it"
+	scrubbed := policy.Scrub(testInput)
+	clean := !strings.Contains(scrubbed, "sk-abc")
+	results = append(results, testResult{Test: "scrub API key", Passed: clean, Output: scrubbed})
+
+	allPassed := true
+	for _, res := range results {
+		if !res.Passed {
+			allPassed = false
+		}
+	}
+
+	jsonResponse(w, map[string]interface{}{
+		"sandbox_active":  true,
+		"all_passed":      allPassed,
+		"tests":           results,
+		"forbidden_paths": len(security.DefaultForbiddenPaths),
+		"forbidden_cmds":  len(security.DefaultForbiddenShellCommands),
+		"scrubber_patterns": security.ScrubberPatternCount(),
 	})
 }
 

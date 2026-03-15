@@ -1,9 +1,32 @@
 import { StatCard } from '@/components/viking/StatCard';
 import { StatusBadge } from '@/components/viking/StatusBadge';
-import { Shield, Lock, FileText, RefreshCw } from 'lucide-react';
+import { Shield, Lock, FileText, RefreshCw, FlaskConical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { useState, useEffect } from 'react';
+
+interface SandboxInfo {
+  active: boolean;
+  forbidden_paths: number;
+  forbidden_commands: number;
+  scrubber_patterns: number;
+  rate_limit?: string;
+}
+
+interface SandboxTestResult {
+  test: string;
+  passed: boolean;
+  output?: string;
+}
+
+interface SandboxTestReport {
+  sandbox_active: boolean;
+  all_passed: boolean;
+  tests: SandboxTestResult[];
+  forbidden_paths: number;
+  forbidden_cmds: number;
+  scrubber_patterns: number;
+}
 
 interface AuditEntry {
   ts: string;
@@ -66,14 +89,38 @@ function fmtTime(ts: string) {
 export function SecurityView() {
   const [auditData, setAuditData] = useState<AuditData | null>(null);
   const [cfg, setCfg] = useState<AgentCfg | null>(null);
+  const [sandbox, setSandbox] = useState<SandboxInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sandboxTest, setSandboxTest] = useState<SandboxTestReport | null>(null);
+  const [testRunning, setTestRunning] = useState(false);
+  const [testError, setTestError] = useState<string | null>(null);
+
+  const runSandboxTest = async () => {
+    setTestRunning(true);
+    setTestError(null);
+    try {
+      const res = await fetch('/api/sandbox/test');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json() as SandboxTestReport;
+      setSandboxTest(data);
+    } catch (e) {
+      setTestError(e instanceof Error ? e.message : 'Test failed');
+    } finally {
+      setTestRunning(false);
+    }
+  };
 
   const loadAll = () => {
     setLoading(true);
-    Promise.allSettled([api.getAudit(), api.getAgentConfig()])
-      .then(([auditRes, cfgRes]) => {
+    Promise.allSettled([api.getAudit(), api.getAgentConfig(), api.getStatus()])
+      .then(([auditRes, cfgRes, statusRes]) => {
         if (auditRes.status === 'fulfilled') setAuditData(auditRes.value as AuditData);
         if (cfgRes.status === 'fulfilled') setCfg(cfgRes.value as AgentCfg);
+        if (statusRes.status === 'fulfilled') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const st = statusRes.value as any;
+          if (st?.sandbox) setSandbox(st.sandbox as SandboxInfo);
+        }
       })
       .finally(() => setLoading(false));
   };
@@ -136,6 +183,74 @@ export function SecurityView() {
           </div>
           <p className="text-xs text-muted-foreground font-display mt-1">AES-256</p>
         </StatCard>
+      </div>
+
+      {/* Sandbox Status Card */}
+      <div className="rounded-xl border border-green-500/20 bg-green-950/10 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-green-400">🛡️</span>
+          <span className="font-semibold text-sm text-green-300">Sandbox</span>
+          <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
+            {sandbox?.active ? 'PROTECTED' : 'ACTIVE'}
+          </span>
+          <button
+            onClick={runSandboxTest}
+            disabled={testRunning}
+            className="ml-auto flex items-center gap-1.5 px-3 py-1 text-xs rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-300 border border-green-500/30 transition-colors disabled:opacity-50"
+          >
+            <FlaskConical className={cn('w-3.5 h-3.5', testRunning && 'animate-pulse')} />
+            {testRunning ? 'Running…' : 'Run Sandbox Tests'}
+          </button>
+        </div>
+
+        {sandbox && (
+          <div className="grid grid-cols-4 gap-4 text-xs text-slate-400 mb-3">
+            <div className="flex flex-col gap-0.5">
+              <span>Forbidden paths</span>
+              <span className="text-white font-bold text-base">{sandbox.forbidden_paths}</span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span>Blocked commands</span>
+              <span className="text-white font-bold text-base">{sandbox.forbidden_commands}</span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span>Scrubber patterns</span>
+              <span className="text-white font-bold text-base">{sandbox.scrubber_patterns}</span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span>Rate limit</span>
+              <span className="text-white font-bold text-base">{sandbox.rate_limit ?? '60 req/min'}</span>
+            </div>
+          </div>
+        )}
+
+        {testError && (
+          <div className="mt-2 px-3 py-2 rounded bg-destructive/10 border border-destructive/30 text-xs text-destructive font-display">
+            ❌ {testError}
+          </div>
+        )}
+
+        {sandboxTest && (
+          <div className="mt-2 space-y-1">
+            <div className="flex items-center gap-2 mb-2">
+              <span className={cn('text-xs font-display font-bold', sandboxTest.all_passed ? 'text-green-400' : 'text-destructive')}>
+                {sandboxTest.all_passed ? '✅ All tests passed' : '❌ Some tests failed'}
+              </span>
+              <span className="ml-auto text-xs text-slate-500 font-display">
+                {sandboxTest.forbidden_paths} paths · {sandboxTest.forbidden_cmds} cmds · {sandboxTest.scrubber_patterns} patterns
+              </span>
+            </div>
+            {sandboxTest.tests.map((t, i) => (
+              <div key={i} className="flex items-start gap-3 px-3 py-1.5 rounded bg-black/20 text-xs">
+                <span className={t.passed ? 'text-green-400' : 'text-destructive'}>{t.passed ? '✅' : '❌'}</span>
+                <span className="text-slate-300 font-display">{t.test}</span>
+                {t.output && (
+                  <span className="ml-auto text-slate-500 font-mono truncate max-w-[200px]" title={t.output}>{t.output}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-5 gap-4">
