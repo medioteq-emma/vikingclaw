@@ -1,4 +1,4 @@
-# VikingClaw Windows Installer
+﻿# VikingClaw Windows Installer
 # https://vikingclaw.com
 
 $ErrorActionPreference = "Stop"
@@ -38,7 +38,7 @@ try {
         Copy-Item "C:\VikingClaw\vikingclaw.exe" $BinaryDest
         Write-Host "  ✅ Installed from local build" -ForegroundColor Green
     } else {
-        Write-Host "  ⚠️  Could not download — please build from source" -ForegroundColor Yellow
+        Write-Host "  ⚠️  Could not download - please build from source" -ForegroundColor Yellow
         Write-Host "     git clone $Repo" -ForegroundColor Gray
         Write-Host "     cd vikingclaw && go build -o vikingclaw.exe ." -ForegroundColor Gray
     }
